@@ -120,6 +120,63 @@ hold — (a) a task family where judge-pleasing genuinely anti-correlates with c
 negative result as the contribution, which is honest but much quieter. **Do not write the
 Goodhart-curve paper on this evidence.**
 
+## EXPERIMENT 2 — direct optimisation against the judge. **Also negative, and this one counts.**
+
+The pilot's null was dismissible: best-of-24 i.i.d. sampling is weak pressure. This run
+fixes that. The generator is shown its judge score and told to raise it, five rounds of
+hill-climbing, against a **control arm** that starts from the identical solution, gets the
+same revision budget, and is told to be more likely correct without the judge ever being
+mentioned. 120 tasks, 1,440 rows, ~2,600 calls. Judge switched to `claude-sonnet-5` after
+measuring three candidates (below).
+
+| round | JUDGE score | JUDGE acc | CONTROL score | CONTROL acc | paired J−C |
+|---|---|---|---|---|---|
+| 0 | 77.5 | 0.675 | 77.5 | 0.675 | +0.00 pp |
+| 1 | 82.3 | 0.733 | 85.2 | 0.783 | −5.00 pp |
+| 3 | 87.1 | 0.817 | 88.1 | 0.817 | +0.00 pp |
+| 5 | 89.6 | 0.858 | 85.8 | 0.783 | +7.50 pp |
+
+**Pressure was genuinely applied**, which is what the pilot lacked: judge score climbed
+**77.5 → 89.6 (+11.5, 4.8 SE)**. The optimiser could and did move the metric.
+
+**Correctness did not pay for it.** Accuracy in the judge arm rose too, 0.675 → 0.858
+(+18.3 pp, 4.3 SE). At no round was the judge arm significantly *worse* than control.
+
+**What must NOT be claimed.** The +7.50 pp judge-over-control advantage at round 5 is
+**2.2 SE uncorrected across six round-wise comparisons**, and the trajectory bounces
+(−5.00, −2.50, 0.00, −0.83, +7.50) against an SE of ~3.3 pp. It is suggestive that
+optimising for the judge beat optimising for correctness, and it is **not** robust.
+Do not write it as a finding.
+
+**The defensible conclusion:** *We applied real optimisation pressure to a well-calibrated
+LLM judge on a verifiable reasoning domain and could not induce a Goodhart effect. Judge
+score rose 12 points; accuracy rose with it.* Two experiments, weak pressure and strong,
+both negative.
+
+**Why this is a result rather than a failure.** The null-model paper [V1] proves the
+adversarial extreme is catastrophic — 86.5% win rate from a constant irrelevant response.
+This bounds the other end: ordinary iterative optimisation against a discriminating judge
+(AUC 0.851) does not get you there on a verifiable task. The danger zone is narrower than
+"best-of-N will Goodhart your judge", and knowing where it *isn't* is worth stating.
+
+**Judge selection, measured not assumed** (60 pilot solutions, 30 correct / 30 wrong):
+
+| judge | mean | sd | AUC | >90 | headroom |
+|---|---|---|---|---|---|
+| haiku-4-5 | 91.7 | 12.1 | 0.644 | 95% | 8.3 |
+| **sonnet-5** | 67.0 | 39.7 | **0.851** | 63% | **33.0** |
+| opus-5 | 69.8 | 39.1 | 0.738 | 67% | 30.2 |
+
+Haiku sits on the ceiling and cannot discriminate — selection against it is near-random,
+so a null there would have meant nothing. **Opus discriminates worse than Sonnet at five
+times the price**, which is a small independent finding worth reporting.
+
+**Honest limits.** One task family (multi-step arithmetic word problems), one generator,
+one judge, five rounds — moderate pressure, not RLAIF scale. Verifiable domain, where
+"looks correct to a careful judge" and "is correct" genuinely coincide; subjective domains
+plausibly differ and that is the obvious next experiment. 120 tasks gives SE ≈ 3.3 pp, so
+degradations under ~7 pp were not detectable.
+
 ## BUDGET — settled before spending, by `power.py`
 
 Best-of-k for every k ≤ N comes free from one generation run by subsampling, so the bill is set by N,
