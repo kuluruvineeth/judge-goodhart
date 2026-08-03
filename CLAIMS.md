@@ -1,0 +1,167 @@
+# Paper 3 — verified claim sheet
+
+Working title: **The Goodhart Curve for LLM Judges**
+Subtitle candidate: *Judge validity as a function of optimization pressure*
+
+Status: thesis selected 2026-08-03 after the previous candidate (endpoint noise floor) was killed by
+prior art. Nothing below is written until it is checked. Claims verified by fetching the primary
+source are marked **[V]**; claims taken from a scout and not yet re-extracted are marked `[unverified]`
+and **may not be written into the paper**.
+
+---
+
+## LAW 0 — THE MATTER PHASE (answered before any DOI was checked)
+
+**1. Who is hurt.** An ML engineer running best-of-16 with an LLM judge over a support summariser.
+Judge score moves 7.1 → 8.4. They validated that judge months ago at ~81% agreement with humans — on
+*unoptimized single samples*. But best-of-16 is a search for the judge's blind spots, so at N=16 the
+real agreement may be far lower and most of the "gain" is the selector finding judge-pleasing
+artifacts. Dashboard green, user outcomes flat. **There is no published number they can look up.**
+
+**2. What they do differently.** Report judge agreement *at their deployed optimization pressure*
+rather than as a one-off scalar; read off the N at which their judge crosses their tolerance and cap
+best-of-N there; and select judges by the *flatness* of the curve rather than by mean agreement —
+which can pick a different judge than the one they would have chosen.
+
+**3. How big, in their units.** The endpoint of the curve is measured and catastrophic (see [V1]).
+The interior — where every team actually operates — is unmeasured. That gap is the paper.
+
+**4. Why still unsolved.** It sits in a seam. RLHF theorists own overoptimization but only for
+*reward models* graded by a synthetic gold RM [V2]. The eval community owns judges but measures them
+*statically*, on i.i.d. unoptimized outputs. Nobody has crossed it.
+
+---
+
+## THE CLAIM I INTEND TO DEFEND — **revised 2026-08-03 by `power.py`, before any API spend**
+
+The first version of this section read: *"Judge–ground-truth agreement decays as a function of
+optimization pressure."* **The simulation falsified that as a general claim on the first run.** With
+a judge-pleasing feature that is merely *uninformative* (verbosity, formatting), accuracy still rises
+monotonically to k=32 at every gameability level tested — gameability **suppresses the gain, it does
+not reverse it**. Best-of-32 buys +46pp with a clean judge and +11pp with a heavily gameable one.
+Real, but that is opportunity cost, not the harm story.
+
+The curve only falls when the judge-pleasing feature is **anti-correlated with correctness** — when
+judge-pleasing outputs are actively *wrong* (confident fabrication, plausible-sounding bad reasoning,
+the padding a null model exploits). Sweeping that correlation at fixed gameability `b = 2`:
+
+| corr(judge-pleasing, correct) | acc@1 | acc@8 | acc@32 | peak k | acc@32 − acc@1 |
+|---|---|---|---|---|---|
+| 0.0 | 0.496 | 0.637 | 0.688 | 32 | **+19.15 pp** |
+| −0.2 | 0.491 | 0.507 | 0.502 | **8** | +1.11 pp |
+| −0.4 | 0.500 | 0.389 | 0.341 | **1** | **−15.91 pp** |
+| −0.6 | 0.497 | 0.242 | 0.125 | 1 | −37.21 pp |
+| −0.8 | 0.508 | 0.116 | 0.028 | 1 | −48.08 pp |
+
+**The corrected thesis:**
+
+> Whether best-of-N against an LLM judge helps or harms is set by the sign and magnitude of the
+> correlation between judge-pleasing features and correctness. There is a critical anti-correlation
+> — near **−0.2** in this model — below which more samples make outputs *worse*, and near which the
+> curve peaks at an **interior optimal N** rather than at the largest N affordable.
+
+Three things make this better than what it replaced. The threshold is **small**: you do not need a
+pathological judge, only a mild preference for confident-wrong over hedged-right. It yields a
+**decision** rather than a warning — cap N at the peak. And it makes the empirical question sharp and
+answerable: *which side of the threshold are real judges on, for real tasks?* That is exactly what the
+experiment measures, and neither answer is a null result.
+
+**Correction to the harm story in Law 0 above.** It assumed the harm always occurs. It does not — it
+is conditional on anti-correlation. The "dashboard green, CSAT flat" scenario is the `−0.2` row, not
+the general case, and must be written as conditional.
+
+Falsifiable three ways, all still live: real judges may sit at correlation ≥ 0 on every task tested
+(then the finding is that best-of-N is safe, which is publishable and useful); the threshold may not
+separate judges that mean agreement already separates; or apparent decay may be the optimizer finding
+genuinely better outputs. **The third is the hard one, and the verifiable-domain design is what makes
+it identifiable.**
+
+## BUDGET — settled before spending, by `power.py`
+
+Best-of-k for every k ≤ N comes free from one generation run by subsampling, so the bill is set by N,
+not by the number of curve points. Paired MDE on acc@32 − acc@8, at 80% power:
+
+| problems | samples | generation calls | judge calls | MDE |
+|---|---|---|---|---|
+| 50 | 32 | 1,600 | 1,600 | 10.7 pp |
+| 100 | 32 | 3,200 | 3,200 | 7.8 pp |
+| **200** | **32** | **6,400** | **6,400** | **4.9 pp** |
+| 500 | 32 | 16,000 | 16,000 | 3.5 pp |
+
+Effects in the table above run 1–48 pp, and the between-judge differences that carry the paper are
+~18 pp. **200 problems × 32 samples is adequate and affordable**; 500 only if the real effects come in
+near the low end. This is the check the previous paper never ran.
+
+---
+
+## VERIFIED — extracted by me from the primary source
+
+**[V1] The adversarial endpoint is catastrophic.** Zheng, Pang, Du, Liu, Jiang & Lin, *Cheating
+Automatic LLM Benchmarks: Null Models Achieve High Win Rates*, **ICLR 2025 (Oral)**,
+arXiv:2410.07137. A null model that *"always outputs a constant response (irrelevant to input
+instructions)"* achieves **86.5% LC win rate on AlpacaEval 2.0**, **83.0 on Arena-Hard-Auto**, and
+**9.55 on MT-Bench**. Fetched and confirmed verbatim 2026-08-03.
+
+**[V2] The nearest prior work is about reward models, not judges.** Gao, Schulman & Hilton, *Scaling
+Laws for Reward Model Overoptimization*, arXiv:2210.10760. The proxy is a **reward model** and the
+gold standard is *"a fixed 'gold-standard' reward model"* that *"plays the role of humans."* No
+humans, no LLM judges, no rubrics. **This is the paper that most looks like mine and is not.** Must be
+cited and distinguished in the first two paragraphs. *(Scout-fetched; re-extract before writing.)*
+
+---
+
+## WHAT I MUST NOT CLAIM
+
+Each of these is false or taken. Writing any of them is fatal.
+
+1. ~~"Benchmark scores don't predict production behaviour."~~ Consensus, not a finding.
+2. ~~"Nobody reports error bars on evals."~~ Anthropic published the argument institutionally
+   (Miller, arXiv:2411.00640). The critique literature is substantial.
+3. ~~"Commercial endpoint run-to-run variance is unmeasured."~~ **Measured three times.** Most
+   damagingly Bjarnason, Silva & Monperrus, arXiv:2602.07150 — **[V]** by me: 60,000 agentic
+   trajectories on SWE-Bench-Verified, *"single-run pass@1 estimates vary by 2.2 to 6.0 percentage
+   points depending on which run is selected, with standard deviations exceeding 1.5 percentage points
+   even at temperature 0."* This killed the previous candidate thesis.
+4. ~~"Removing `temperature` took away the control for this variance."~~ **False causal chain.**
+   Batch-size nondeterminism is kernel-level, upstream of sampling; `temperature=0` never controlled
+   it. Anthropic's own migration guide: it *"never guaranteed identical outputs on prior models."*
+5. ~~"Harness choice doesn't matter."~~ Three 2026 papers own this, and one reports backend choice
+   alone shifting scores by **up to 16.6 points** — an order of magnitude above endpoint noise.
+   **Confront this directly:** it means endpoint nondeterminism is NOT the dominant term, and any
+   variance claim I make must be stated against harness variance, not instead of it.
+6. ~~"LLM judges are unreliable."~~ Crowded — 21 judges × 9 providers already published.
+
+## PRIOR ART TO CITE AND DISTINGUISH `[unverified — re-extract each before writing]`
+
+- Norman, Rivera & Hughes, *Reliability without Validity*, arXiv:2606.19544 — 21 judges, 9 providers;
+  judges with high test–retest reliability alongside severe position bias. **Static measurement.**
+- Panickssery, Bowman & Feng, arXiv:2404.13076 — self-preference bias correlates with
+  self-recognition. **Static.**
+- Hochlehnert et al., *A Sober Look at Progress in Language Model Reasoning*, arXiv:2504.07086.
+  **The "15% seed variance on AIME'24" figure came from a search summary and is NOT verified — do not
+  cite that number.**
+- Dwork et al., arXiv:1506.02629 (reusable holdout) and Blum & Hardt, arXiv:1502.04585 (the Ladder) —
+  adaptive data analysis, pre-LLM, and the closest theoretical framing for the sibling question.
+
+## THE DESIGN TRICK — why this is solo-executable
+
+Run the curves on **verifiable domains first**: code with hidden tests, math with known answers.
+Ground truth is free and exact, so I can optimize against the judge and read *true* accuracy at every
+N with **zero annotation budget**. The judge never sees ground truth. A small human study for
+subjective domains comes later, only to show the curve shape transfers.
+
+## THE HARD CONFOUND — and it is the paper's real risk
+
+A rising judge score with rising N could mean the judge is being gamed **or** that the optimizer found
+genuinely better outputs. On a verifiable domain these separate cleanly: if true accuracy rises with
+judge score, the judge is working; if judge score rises while true accuracy stalls or falls, the gap
+is the Goodhart effect. **The verifiable-domain design is not a convenience — it is what makes the
+claim identifiable at all.**
+
+## OPEN / TO CHECK BEFORE WRITING
+
+- Re-extract [V2] and every `[unverified]` citation above from the primary source.
+- Sweep GitHub issues on eval frameworks, LessWrong, and the Alignment Forum for practitioner
+  evidence. The scout's budget ran out before reaching them; the search was arXiv-only.
+- One confirming pass for anyone who has measured judge agreement as a function of best-of-N. The
+  scout's sweep across 13 best-of-N papers found none, but that is absence of evidence.
