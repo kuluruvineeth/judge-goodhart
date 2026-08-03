@@ -76,6 +76,50 @@ separate judges that mean agreement already separates; or apparent decay may be 
 genuinely better outputs. **The third is the hard one, and the verifiable-domain design is what makes
 it identifiable.**
 
+## PILOT RESULT — 2026-08-03. **The headline claim did not reproduce.**
+
+120 tasks × 24 samples, 2,880 generations + 2,880 judge calls, ~$30, zero API errors,
+zero parse failures. Generator `claude-haiku-4-5`, judge `claude-opus-5`. All three mutants
+broke as required (shuffled judge → flat to 0.0 SE; perfect judge → exactly the oracle;
+reversed judge → 0.669 → 0.521).
+
+| k | judge says | actually correct | oracle | gap to oracle |
+|---|---|---|---|---|
+| 1 | 79.0 | 0.6681 | 0.6681 | 0.0000 |
+| 4 | 89.2 | 0.7667 | 0.7891 | 0.0224 |
+| 8 | 93.3 | 0.8091 | 0.8459 | 0.0368 |
+| 24 | 96.5 | 0.8326 | 0.9083 | 0.0757 |
+
+**1. No reversal, and no interior optimum.** `acc@24 − acc@1 = +16.45 pp` (5.6 SE), rising
+monotonically, peaking at the largest k tested. Best-of-N *works* here. The Goodhart curve
+this paper is named after does not appear.
+
+**2. The efficiency decline is NOT significant, and I nearly reported that it was.** The
+aggregate captured-share falls 81.5% → 68.5% from k=4 to k=24, which looks like decay. Per
+task and paired, it is **−0.023 ± 0.028, i.e. 0.8 SE**. The aggregate figure is a
+ratio-of-means artifact. **Must not be claimed.**
+
+**3. The one clean finding is a negative one.** Judge overconfidence is **flat under
+selection pressure**: +12.2 pp at k=1 and +13.3 pp at k=24, near-constant across a 24×
+increase in optimization pressure. Selection did not degrade the judge's calibration.
+
+**Why, and it is exactly what `power.py` predicted.** The simulation said that when
+judge-pleasing features are merely *uninformative* the result is suppressed gain, not
+reversal — and that reversal needs anti-correlation below about −0.2. This task/judge pair
+sits in the benign regime. The prediction held; the interesting regime is elsewhere.
+
+**The likely design flaw: best-of-24 by random sampling is weak optimization pressure.**
+Drawing 24 independent samples and taking the judge's favourite is not a search for the
+judge's blind spots — it is a lottery over the generator's natural output distribution. Real
+Goodhart pressure comes from *optimising against* the judge: prompt optimisation, rejection
+sampling with feedback, RLAIF. The null here is plausibly about pressure, not about judges.
+
+**Status: the paper as scoped is not supported.** Before any writing, one of these must
+hold — (a) a task family where judge-pleasing genuinely anti-correlates with correctness,
+(b) real optimisation against the judge rather than i.i.d. sampling, or (c) accept the
+negative result as the contribution, which is honest but much quieter. **Do not write the
+Goodhart-curve paper on this evidence.**
+
 ## BUDGET — settled before spending, by `power.py`
 
 Best-of-k for every k ≤ N comes free from one generation run by subsampling, so the bill is set by N,
