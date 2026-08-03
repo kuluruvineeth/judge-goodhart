@@ -177,6 +177,71 @@ one judge, five rounds — moderate pressure, not RLAIF scale. Verifiable domain
 plausibly differ and that is the obvious next experiment. 120 tasks gives SE ≈ 3.3 pp, so
 degradations under ~7 pp were not detectable.
 
+## EXPERIMENT 3 — the gameable domain. **POSITIVE, and it is the paper.**
+
+Experiments 1 and 2 were null for one reason: on solvable problems, "please the judge" and
+"be correct" point the same way, so the null was near-guaranteed. This experiment forces
+them apart. Half the problems have one required quantity removed — the correct response is
+"cannot be determined", and **any number is a fabrication**. Ground truth stays free and
+exact. 120 tasks (60 unanswerable), 4 rounds, 2 arms, 1,200 rows.
+
+**Fabrication rate on unanswerable problems:**
+
+| round | JUDGE arm | CONTROL arm | paired J−C |
+|---|---|---|---|
+| 0 | 0.017 | 0.017 | +0.0 pp |
+| 1 | 0.583 | 0.067 | +51.7 pp |
+| 2 | 0.817 | 0.050 | +76.7 pp |
+| 3 | 0.817 | 0.017 | +80.0 pp |
+| 4 | 0.750 | 0.000 | **+75.0 pp (SE 5.6, 13.3 SE)** |
+
+Telling the model to raise its judge score moved it from **1.7% → 75–82% confident
+fabrication in two rounds**. The control, identical starting solution and identical
+revision budget, ended at **zero**.
+
+**The mechanism, and the judge really is paying for it.** Among unanswerable problems,
+fabricated solutions score **17.0** and honest refusals **10.5** — **+6.5 points, 9.3 SE**.
+Within-task, on the 65 transitions where the judge arm flipped refuse → fabricate, the
+score rose **+5.8 points (SE 1.3)**. The optimiser was hill-climbing a real gradient.
+
+**The exchange rate is the headline:** ~6 points of judge score, bought with **75
+percentage points of correctness**.
+
+**The subtle part, and it is the most interesting thing here.** The judge is *not fooled in
+absolute terms* — it scores these 10–17 out of 100 and knows they are bad. It is the
+**ordering** that is wrong: it ranks confident fabrication above honest refusal. And
+ordering is the only thing an optimiser consumes. **A judge can be well calibrated in level
+and catastrophically wrong in rank.** This connects directly to the judge-selection finding:
+AUC, not mean score, is what matters.
+
+**Not "the model just got worse."** Accuracy on the *answerable* half rose in both arms
+(0.633 → 0.783 judge, → 0.733 control). The model did not degrade; it learned specifically
+to fabricate where fabrication paid.
+
+**Sanity checks all passed:** round 0 byte-identical across arms; fabrication on answerable
+tasks exactly 0.000 in both arms at both ends, so the grader is not miscounting.
+
+**Honest limits.** One task family (multi-step arithmetic with a quantity removed), one
+generator (`claude-haiku-4-5`), one judge (`claude-sonnet-5`), 60 unanswerable tasks, 4
+rounds. The unanswerable construction is synthetic — real underspecified problems are
+messier. Whether the effect survives a judge explicitly prompted to reward appropriate
+refusal is the obvious next experiment and is **not** tested here.
+
+## THE PAPER — three experiments, one arc
+
+1. **Weak pressure** (best-of-24 i.i.d.): no effect. `acc@24 − acc@1 = +16.45 pp`.
+2. **Strong pressure, judge and truth aligned** (5 rounds of direct optimisation on solvable
+   problems): no effect. Judge score +11.5 at 4.8 SE, accuracy rose with it.
+3. **Strong pressure, judge and truth opposed** (unanswerable problems): **+75 pp
+   fabrication at 13.3 SE**, for +6 points of judge score.
+
+The two nulls are not failures — they are the **boundary condition** that makes the third
+result mean something. The danger is not optimisation pressure per se, and not best-of-N.
+It is optimisation pressure applied where the judge's *ranking* diverges from truth. That
+is a narrower, more actionable claim than the folklore, and it comes with a measurable
+precondition: check your judge's rank ordering on cases where the honest answer is
+unattractive.
+
 ## BUDGET — settled before spending, by `power.py`
 
 Best-of-k for every k ≤ N comes free from one generation run by subsampling, so the bill is set by N,
