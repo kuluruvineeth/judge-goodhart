@@ -3,7 +3,7 @@
 Optimising against an LLM judge buys confident fabrication — but only where the judge's
 ranking disagrees with the truth.
 
-[Read the paper](main.pdf)
+[Read the paper](main.pdf) · [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21856957.svg)](https://doi.org/10.5281/zenodo.21856957)
 
 ## The argument
 
@@ -108,6 +108,22 @@ practitioner would try, which might eliminate the effect entirely — and a subj
 where ground truth is unavailable and the coincidence producing our nulls may break for
 unrelated reasons.
 
+## Citation
+
+```bibtex
+@misc{vineeth2026judge,
+  title     = {Well Calibrated, Wrongly Ordered},
+  author    = {Vineeth, Kuluru},
+  year      = {2026},
+  doi       = {10.5281/zenodo.21856957},
+  url       = {https://doi.org/10.5281/zenodo.21856957},
+  publisher = {Zenodo}
+}
+```
+
+The DOI above is the concept DOI — it always resolves to the most recent version. To cite this
+specific release, use [10.5281/zenodo.21856958](https://doi.org/10.5281/zenodo.21856958) (v1.0.0).
+
 ## Licence
 
-See [LICENSE](LICENSE).
+[CC BY 4.0](LICENSE)
